@@ -1,0 +1,326 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up — GreenGig Africa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}" />
+</head>
+<body>
+  <div class="auth-page">
+
+    <div class="auth-card">
+      <!-- Logo -->
+      <a href="/" class="auth-logo">
+        <span>🌿</span> GreenGig <span class="accent">Africa</span>
+      </a>
+
+      <!-- Step 1: Phone number -->
+      <div id="step-phone" class="auth-step">
+        <h1>Create your account</h1>
+        <p class="auth-sub">Enter your phone number to get started. No email needed.</p>
+
+        <div class="role-picker">
+          <button class="role-btn role-btn--active" data-role="job_seeker">
+            <span>💼</span> Find work
+          </button>
+          <button class="role-btn" data-role="volunteer">
+            <span>🌱</span> Volunteer
+          </button>
+          <button class="role-btn" data-role="organisation">
+            <span>🏢</span> Post tasks
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone number</label>
+          <div class="phone-input">
+            <span class="phone-prefix">🇳🇬 +234</span>
+            <input type="tel" id="phone" placeholder="8012345678" maxlength="10" inputmode="numeric" />
+          </div>
+          <span class="field-hint">We'll send a verification code via SMS</span>
+        </div>
+
+        <div id="phone-error" class="error-msg" hidden></div>
+
+        <button class="btn btn--primary btn--full" id="send-otp-btn">
+          Send verification code
+        </button>
+
+        <p class="auth-footer">Already have an account? <a href="/login/">Log in</a></p>
+      </div>
+
+      <!-- Step 2: OTP -->
+      <div id="step-otp" class="auth-step" hidden>
+        <h1>Enter your code</h1>
+        <p class="auth-sub">We sent a 6-digit code to <strong id="otp-phone-display"></strong></p>
+
+        <div class="otp-inputs" role="group" aria-label="Verification code">
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        </div>
+
+        <div id="otp-error" class="error-msg" hidden></div>
+
+        <button class="btn btn--primary btn--full" id="verify-otp-btn">Verify code</button>
+
+        <p class="auth-footer">
+          Didn't get a code?
+          <button class="link-btn" id="resend-btn">Resend</button>
+          <span id="resend-timer" hidden> in <span id="timer-count">60</span>s</span>
+        </p>
+        <p class="auth-footer"><button class="link-btn" id="back-to-phone">← Change number</button></p>
+      </div>
+
+      <!-- Step 3: Profile setup -->
+      <div id="step-profile" class="auth-step" hidden>
+        <h1>Set up your profile</h1>
+        <p class="auth-sub">Just 3 fields — takes under a minute.</p>
+
+        <div class="form-group">
+          <label for="full-name">Full name</label>
+          <input type="text" id="full-name" placeholder="e.g. Amina Bello" />
+        </div>
+
+        <div class="form-group">
+          <label for="lga">Your LGA</label>
+          <select id="lga">
+            <option value="">Select your LGA</option>
+            <option value="alimosho">Alimosho</option>
+            <option value="epe">Epe</option>
+            <option value="ikorodu">Ikorodu</option>
+            <option value="mushin">Mushin</option>
+            <option value="lekki">Lekki</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Task interests <span class="label-hint">(pick all that apply)</span></label>
+          <div class="interest-grid">
+            <button class="interest-btn" data-value="waste_collection">🗑️ Waste Collection</button>
+            <button class="interest-btn" data-value="tree_planting">🌳 Tree Planting</button>
+            <button class="interest-btn" data-value="urban_farming">🌾 Urban Farming</button>
+            <button class="interest-btn" data-value="climate_data">📊 Climate Data</button>
+            <button class="interest-btn" data-value="recycling">♻️ Recycling</button>
+            <button class="interest-btn" data-value="community_education">📚 Community Ed</button>
+          </div>
+        </div>
+
+        <div id="profile-error" class="error-msg" hidden></div>
+
+        <button class="btn btn--primary btn--full" id="save-profile-btn">Complete setup</button>
+      </div>
+
+      <!-- Step 4: Success -->
+      <div id="step-success" class="auth-step" hidden>
+        <div class="success-icon">🎉</div>
+        <h1>You're in!</h1>
+        <p class="auth-sub">Your account is ready. Start finding climate work near you.</p>
+        <a href="/dashboard/" class="btn btn--primary btn--full">Go to dashboard</a>
+      </div>
+
+    </div>
+
+    <!-- Side panel -->
+    <div class="auth-side" aria-hidden="true">
+      <div class="auth-side__content">
+        <div class="auth-side__badge">🌿 Verified climate work</div>
+        <h2>Join Lagos's climate workforce</h2>
+        <p>Find paid tasks near you, submit proof of work, and get paid via OPay or PalmPay.</p>
+        <div class="auth-side__stats">
+          <div><strong>25,000+</strong><span>green jobs in Lagos</span></div>
+          <div><strong>2 LGAs</strong><span>active at launch</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = '/api/v1/auth';
+    let phoneNumber = '';
+    let selectedRole = 'job_seeker';
+    let accessToken = '';
+
+    // Role picker
+    document.querySelectorAll('.role-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('role-btn--active'));
+        btn.classList.add('role-btn--active');
+        selectedRole = btn.dataset.role;
+        if (selectedRole === 'organisation') {
+          window.location.href = '/org-register/';
+        }
+      });
+    });
+
+    // Interest picker
+    document.querySelectorAll('.interest-btn').forEach(btn => {
+      btn.addEventListener('click', () => btn.classList.toggle('interest-btn--active'));
+    });
+
+    function showStep(id) {
+      document.querySelectorAll('.auth-step').forEach(s => s.hidden = true);
+      document.getElementById(id).hidden = false;
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg; el.hidden = false;
+    }
+    function clearError(id) { document.getElementById(id).hidden = true; }
+
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.textContent = loading ? 'Please wait…' : btn.dataset.label;
+    }
+
+    // Store labels
+    document.querySelectorAll('.btn--primary').forEach(b => b.dataset.label = b.textContent);
+
+    // ── Step 1: Send OTP ──────────────────────────────────────
+    document.getElementById('send-otp-btn').addEventListener('click', async () => {
+      clearError('phone-error');
+      const raw = document.getElementById('phone').value.trim();
+      if (!raw || raw.length < 7) { showError('phone-error', 'Enter a valid phone number.'); return; }
+
+      phoneNumber = '+234' + raw.replace(/^0/, '');
+      const btn = document.getElementById('send-otp-btn');
+      setLoading(btn, true);
+
+      try {
+        const res = await fetch(`${API}/request-otp/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number: phoneNumber }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError('phone-error', data.detail || 'Failed to send OTP.'); return; }
+        document.getElementById('otp-phone-display').textContent = phoneNumber;
+        showStep('step-otp');
+        startResendTimer();
+        document.querySelector('.otp-digit').focus();
+      } catch (e) {
+        showError('phone-error', 'Network error. Check your connection.');
+      } finally { setLoading(btn, false); }
+    });
+
+    // ── OTP digit inputs ──────────────────────────────────────
+    const digits = document.querySelectorAll('.otp-digit');
+    digits.forEach((input, i) => {
+      input.addEventListener('input', () => {
+        if (input.value && i < digits.length - 1) digits[i + 1].focus();
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !input.value && i > 0) digits[i - 1].focus();
+      });
+    });
+
+    function getOTPCode() {
+      return Array.from(digits).map(d => d.value).join('');
+    }
+
+    // ── Step 2: Verify OTP ────────────────────────────────────
+    document.getElementById('verify-otp-btn').addEventListener('click', async () => {
+      clearError('otp-error');
+      const code = getOTPCode();
+      if (code.length !== 6) { showError('otp-error', 'Enter all 6 digits.'); return; }
+
+      const btn = document.getElementById('verify-otp-btn');
+      setLoading(btn, true);
+
+      try {
+        const res = await fetch(`${API}/verify-otp/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number: phoneNumber, code }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError('otp-error', data.detail || 'Invalid code.'); return; }
+
+        accessToken = data.tokens.access;
+        localStorage.setItem('gg_access', data.tokens.access);
+        localStorage.setItem('gg_refresh', data.tokens.refresh);
+
+        if (data.profile_complete) {
+          window.location.href = '/dashboard/';
+        } else {
+          showStep('step-profile');
+        }
+      } catch (e) {
+        showError('otp-error', 'Network error. Try again.');
+      } finally { setLoading(btn, false); }
+    });
+
+    // ── Resend timer ──────────────────────────────────────────
+    function startResendTimer() {
+      let t = 60;
+      const timerEl = document.getElementById('timer-count');
+      const timerWrap = document.getElementById('resend-timer');
+      const resendBtn = document.getElementById('resend-btn');
+      resendBtn.disabled = true;
+      timerWrap.hidden = false;
+      timerEl.textContent = t;
+      const iv = setInterval(() => {
+        t--;
+        timerEl.textContent = t;
+        if (t <= 0) {
+          clearInterval(iv);
+          resendBtn.disabled = false;
+          timerWrap.hidden = true;
+        }
+      }, 1000);
+    }
+
+    document.getElementById('resend-btn').addEventListener('click', async () => {
+      await fetch(`${API}/request-otp/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+      startResendTimer();
+    });
+
+    document.getElementById('back-to-phone').addEventListener('click', () => showStep('step-phone'));
+
+    // ── Step 3: Save profile ──────────────────────────────────
+    document.getElementById('save-profile-btn').addEventListener('click', async () => {
+      clearError('profile-error');
+      const fullName = document.getElementById('full-name').value.trim();
+      const lga = document.getElementById('lga').value;
+      const interests = Array.from(document.querySelectorAll('.interest-btn--active')).map(b => b.dataset.value);
+
+      if (!fullName) { showError('profile-error', 'Enter your full name.'); return; }
+      if (!lga) { showError('profile-error', 'Select your LGA.'); return; }
+      if (!interests.length) { showError('profile-error', 'Pick at least one task interest.'); return; }
+
+      const btn = document.getElementById('save-profile-btn');
+      setLoading(btn, true);
+
+      try {
+        const res = await fetch(`${API}/setup-profile/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ full_name: fullName, lga, task_interests: interests, role: selectedRole }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showError('profile-error', data.detail || JSON.stringify(data)); return; }
+        showStep('step-success');
+      } catch (e) {
+        showError('profile-error', 'Network error. Try again.');
+      } finally { setLoading(btn, false); }
+    });
+  </script>
+</body>
+</html>
