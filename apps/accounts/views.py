@@ -15,7 +15,7 @@ from .services import send_otp, verify_otp, get_or_create_user, issue_tokens
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_otp(request):
-    """Send OTP to phone number. Returns dev_otp in DEBUG mode."""
+    """Send OTP to phone number."""
     serializer = RequestOTPSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -24,12 +24,17 @@ def request_otp(request):
 
     response = {'detail': f'OTP sent to {phone}.'}
 
-    # Expose OTP in dev mode so frontend can show it without SMS
-    dev_mode = getattr(settings, 'DEV_MODE', False)
-    no_twilio = not getattr(settings, 'TWILIO_ACCOUNT_SID', '')
-    if dev_mode and no_twilio:
+    # Check if any SMS provider is configured
+    has_twilio = bool(getattr(settings, 'TWILIO_ACCOUNT_SID', '').strip())
+    has_at = bool(getattr(settings, 'AT_API_KEY', '').strip())
+    has_termii = bool(getattr(settings, 'TERMII_API_KEY', '').strip())
+    sms_configured = has_twilio or has_at or has_termii
+
+    # Always return OTP in response when no SMS is working
+    # This allows the frontend to show it to the user
+    if not sms_configured or getattr(settings, 'DEV_MODE', False):
         response['dev_otp'] = otp.code
-        response['dev_note'] = 'Dev mode — use this code to verify'
+        response['dev_note'] = 'SMS not configured — use this code'
 
     return Response(response, status=status.HTTP_200_OK)
 

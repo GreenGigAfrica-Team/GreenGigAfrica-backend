@@ -24,22 +24,46 @@ def _dispatch_sms(phone_number: str, code: str):
     if termii_key:
         try:
             import requests as req
-            response = req.post('https://api.termii.com/api/sms/send', json={
+            # Use Termii token endpoint — no Sender ID required
+            response = req.post('https://api.termii.com/api/sms/otp/send', json={
+                'api_key': termii_key,
+                'message_type': 'NUMERIC',
                 'to': phone_number,
                 'from': 'N-Alert',
+                'channel': 'dnd',
+                'pin_attempts': 3,
+                'pin_time_to_live': 10,
+                'pin_length': 6,
+                'pin_placeholder': '< 1234 >',
+                'message_text': f'Your GreenGig Africa code is < 1234 >. Valid for 10 minutes.',
+                'pin_type': 'NUMERIC',
+            })
+            data = response.json()
+            print(f'[SMS] Termii token response: {response.status_code} — {data}')
+            if response.status_code == 200:
+                # Store the pinId so we can verify later
+                # For now fall through to our own OTP system
+                pass
+        except Exception as e:
+            print(f'[SMS ERROR] Termii exception: {e}')
+
+        # Also try generic send with numeric sender
+        try:
+            import requests as req
+            response = req.post('https://api.termii.com/api/sms/send', json={
+                'to': phone_number,
+                'from': '2347089509657',
                 'sms': msg,
                 'type': 'plain',
-                'channel': 'dnd',
+                'channel': 'generic',
                 'api_key': termii_key,
             })
             data = response.json()
-            print(f'[SMS] Termii response: {response.status_code} — {data}')
+            print(f'[SMS] Termii generic response: {response.status_code} — {data}')
             if response.status_code == 200:
                 return
-            else:
-                print(f'[SMS ERROR] Termii failed: {data}')
         except Exception as e:
-            print(f'[SMS ERROR] Termii exception: {e}')
+            print(f'[SMS ERROR] Termii generic exception: {e}')
 
     # ── Africa's Talking ──────────────────────────────────────
     at_key = getattr(settings, 'AT_API_KEY', '').strip()
