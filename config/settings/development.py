@@ -11,27 +11,23 @@ TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_TOKEN = ''
 TWILIO_PHONE_NUMBER = ''
 
-# Allow all origins in development
+# ── CORS ──────────────────────────────────────────────────────────────────────
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ['*']
 
 # ── Database ──────────────────────────────────────────────────────────────────
-_db_host = os.environ.get('DB_HOST', '').strip()
+_database_url = os.environ.get('DATABASE_URL', '').strip()
 
-if _db_host:
+if _database_url:
+    import dj_database_url
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'postgres'),
-            'USER': os.environ.get('DB_USER', 'postgres'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-            'HOST': _db_host,
-            'PORT': os.environ.get('DB_PORT', '5432'),
-            'OPTIONS': {'sslmode': 'require'},
-        }
+        'default': dj_database_url.config(
+            default=_database_url,
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-    print(f'[DB] Using PostgreSQL: {_db_host}')
+    print(f'[DB] Using PostgreSQL via DATABASE_URL')
 else:
     DATABASES = {
         'default': {
