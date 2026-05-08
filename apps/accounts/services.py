@@ -24,18 +24,22 @@ def _dispatch_sms(phone_number: str, code: str):
     if termii_key:
         try:
             import requests as req
-            response = req.post('https://api.ng.termii.com/api/sms/send', json={
+            response = req.post('https://api.termii.com/api/sms/send', json={
                 'to': phone_number,
-                'from': 'GreenGig',
+                'from': 'N-Alert',
                 'sms': msg,
                 'type': 'plain',
-                'channel': 'generic',
+                'channel': 'dnd',
                 'api_key': termii_key,
             })
-            print(f'[SMS] Sent via Termii to {phone_number}: {response.status_code}')
-            return
+            data = response.json()
+            print(f'[SMS] Termii response: {response.status_code} — {data}')
+            if response.status_code == 200:
+                return
+            else:
+                print(f'[SMS ERROR] Termii failed: {data}')
         except Exception as e:
-            print(f'[SMS ERROR] Termii failed: {e}')
+            print(f'[SMS ERROR] Termii exception: {e}')
 
     # ── Africa's Talking ──────────────────────────────────────
     at_key = getattr(settings, 'AT_API_KEY', '').strip()
