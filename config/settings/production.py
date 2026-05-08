@@ -27,7 +27,7 @@ TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
     }
 #else:
     # Railway provides DATABASE_URL automatically
- #   import dj_database_url
+    import dj_database_url
     DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
