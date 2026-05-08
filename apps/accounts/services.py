@@ -2,10 +2,13 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import OTPCode, User
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def send_otp(phone_number: str) -> OTPCode:
-    """Generate OTP and attempt SMS delivery. Returns the OTPCode instance."""
+    """Generate OTP and send via SMS. Returns the OTPCode instance."""
     OTPCode.objects.filter(phone_number=phone_number, is_used=False).update(is_used=True)
     code = OTPCode.generate_code()
     otp = OTPCode.objects.create(phone_number=phone_number, code=code)
@@ -16,22 +19,58 @@ def send_otp(phone_number: str) -> OTPCode:
 def _dispatch_sms(phone_number: str, code: str):
     msg = f'Your GreenGig Africa code is: {code}. Valid for {settings.OTP_EXPIRY_MINUTES} minutes.'
 
-    # Try Twilio if configured
-    sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '')
-    if sid:
+    # ── Termii ────────────────────────────────────────────────
+    termii_key = getattr(settings, 'TERMII_API_KEY', '').strip()
+    if termii_key:
         try:
-            from twilio.rest import Client
-            client = Client(sid, settings.TWILIO_AUTH_TOKEN)
-            client.messages.create(body=msg, from_=settings.TWILIO_PHONE_NUMBER, to=phone_number)
+            import requests as req
+            response = req.post('https://api.ng.termii.com/api/sms/send', json={
+                'to': phone_number,
+                'from': 'GreenGig',
+                'sms': msg,
+                'type': 'plain',
+                'channel': 'generic',
+                'api_key': termii_key,
+            })
+            print(f'[SMS] Sent via Termii to {phone_number}: {response.status_code}')
             return
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error('Twilio failed: %s', e)
+            print(f'[SMS ERROR] Termii failed: {e}')
 
-    # Dev fallback — print to console
+    # ── Africa's Talking ──────────────────────────────────────
+    at_key = getattr(settings, 'AT_API_KEY', '').strip()
+    at_user = getattr(settings, 'AT_USERNAME', '').strip()
+    if at_key and at_user:
+        try:
+            import africastalking
+            africastalking.initialize(at_user, at_key)
+            sms = africastalking.SMS
+            response = sms.send(msg, [phone_number])
+            logger.info('Africa\'s Talking SMS sent: %s', response)
+            print(f'[SMS] Sent via Africa\'s Talking to {phone_number}')
+            return
+        except Exception as e:
+            logger.error('Africa\'s Talking SMS failed: %s', e)
+            print(f'[SMS ERROR] Africa\'s Talking failed: {e}')
+
+    # ── Twilio fallback ───────────────────────────────────────
+    twilio_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '').strip()
+    if twilio_sid:
+        try:
+            from twilio.rest import Client
+            client = Client(twilio_sid, settings.TWILIO_AUTH_TOKEN)
+            client.messages.create(body=msg, from_=settings.TWILIO_PHONE_NUMBER, to=phone_number)
+            print(f'[SMS] Sent via Twilio to {phone_number}')
+            return
+        except Exception as e:
+            logger.error('Twilio SMS failed: %s', e)
+            print(f'[SMS ERROR] Twilio failed: {e}')
+
+    # ── Dev fallback — always print to logs ──────────────────
     print(f'\n{"="*50}')
-    print(f'[DEV OTP] {phone_number} → {code}')
+    print(f'[OTP] {phone_number} → {code}')
     print(f'{"="*50}\n')
+    logger.warning('No SMS provider configured. OTP for %s: %s', phone_number, code)
 
 
 def verify_otp(phone_number: str, code: str) -> tuple[bool, str]:

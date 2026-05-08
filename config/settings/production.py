@@ -12,6 +12,13 @@ TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
+# Africa's Talking SMS
+AT_USERNAME = os.environ.get('AT_USERNAME', '')
+AT_API_KEY = os.environ.get('AT_API_KEY', '')
+
+# Termii SMS (free tier, works in Nigeria + Ethiopia)
+TERMII_API_KEY = os.environ.get('TERMII_API_KEY', '')
+
 # ── Database ──────────────────────────────────────────────────────────────────
 # Django reads DATABASE_URL environment variable automatically
 # Railway sets this automatically when you add a PostgreSQL database
