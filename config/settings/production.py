@@ -12,9 +12,9 @@ TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
 # PostgreSQL from Railway or Supabase
-_db_host = os.environ.get('DB_HOST', '').strip()
-if _db_host:
-    DATABASES = {
+# _db_host = os.environ.get('DB_HOST', '').strip()
+# if _db_host:
+#   DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME', 'postgres'),
@@ -25,17 +25,17 @@ if _db_host:
             'OPTIONS': {'sslmode': 'require'},
         }
     }
-else:
+#else:
     # Railway provides DATABASE_URL automatically
-    import dj_database_url
+ #   import dj_database_url
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL', ''),
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
-
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
+    
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
