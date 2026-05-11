@@ -24,8 +24,8 @@ def request_otp(request):
 
     response = {'detail': f'OTP sent to {phone}.'}
 
-    # Always include dev_otp so frontend can show it as fallback
-    # When real SMS works, frontend can choose to hide it
+    # Always return dev_otp so frontend can show it
+    # When real SMS is working, frontend can ignore it
     response['dev_otp'] = otp.code
 
     return Response(response, status=status.HTTP_200_OK)

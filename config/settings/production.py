@@ -16,8 +16,9 @@ TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 AT_USERNAME = os.environ.get('AT_USERNAME', '')
 AT_API_KEY = os.environ.get('AT_API_KEY', '')
 
-# Termii SMS (free tier, works in Nigeria + Ethiopia)
+# Termii SMS (works in Nigeria + Ethiopia + most of Africa)
 TERMII_API_KEY = os.environ.get('TERMII_API_KEY', '')
+TERMII_SENDER_ID = os.environ.get('TERMII_SENDER_ID', 'GreenGig')
 
 # ── Database ──────────────────────────────────────────────────────────────────
 # Django reads DATABASE_URL environment variable automatically
@@ -32,8 +33,11 @@ DATABASES = {
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
+# Allow all origins for now — restrict to your frontend domain after launch
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+# When ready to lock down, replace the above with:
+# CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
 
 # ── Static files ──────────────────────────────────────────────────────────────
 STATIC_URL = '/static/'

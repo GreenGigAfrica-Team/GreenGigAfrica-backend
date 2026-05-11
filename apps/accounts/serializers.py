@@ -3,17 +3,19 @@ from .models import User, OTPCode, JobSeekerProfile
 
 
 class RequestOTPSerializer(serializers.Serializer):
-    phone_number = serializers.CharField(max_length=25)
+    phone_number = serializers.CharField(max_length=20)
 
     def validate_phone_number(self, value):
-        value = value.strip().replace(' ', '')
+        value = value.strip().replace(' ', '').replace('-', '')
         if not value.startswith('+'):
             raise serializers.ValidationError(
-                'Phone number must include country code, e.g. +2348012345678'
+                'Phone number must include country code, e.g. +2518XXXXXXXX'
             )
         digits = value[1:]
-        if not digits.isdigit() or len(digits) < 7:
-            raise serializers.ValidationError('Enter a valid international phone number.')
+        if not digits.isdigit() or len(digits) < 7 or len(digits) > 15:
+            raise serializers.ValidationError(
+                'Enter a valid international phone number (7–15 digits after the + sign).'
+            )
         return value
 
 
@@ -24,7 +26,12 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 class ProfileSetupSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=150)
-    lga = serializers.ChoiceField(choices=['alimosho', 'epe', 'ikorodu', 'mushin', 'lekki', 'other'])
+    lga = serializers.ChoiceField(choices=[
+        'agege', 'ajeromi-ifelodun', 'alimosho', 'amuwo-odofin', 'apapa',
+        'badagry', 'epe', 'eti-osa', 'ibeju-lekki', 'ifako-ijaiye',
+        'ikeja', 'ikorodu', 'kosofe', 'lagos-island', 'lagos-mainland',
+        'mushin', 'ojo', 'oshodi-isolo', 'shomolu', 'surulere', 'other',
+    ])
     task_interests = serializers.ListField(child=serializers.CharField(), min_length=1)
     role = serializers.ChoiceField(choices=['job_seeker', 'volunteer'])
 

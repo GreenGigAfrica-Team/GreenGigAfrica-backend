@@ -7,9 +7,19 @@ ALLOWED_HOSTS = ['*']
 
 DEV_MODE = True
 
-TWILIO_ACCOUNT_SID = ''
-TWILIO_AUTH_TOKEN = ''
-TWILIO_PHONE_NUMBER = ''
+# ── Load .env file ────────────────────────────────────────────────────────────
+import environ
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / '.env')
+
+# ── Termii SMS ────────────────────────────────────────────────────────────────
+TERMII_API_KEY = env('TERMII_API_KEY', default='')
+TERMII_SENDER_ID = env('TERMII_SENDER_ID', default='GreenGig')
+
+# ── Twilio SMS ────────────────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='')
+TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='')
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 CORS_ALLOW_ALL_ORIGINS = True
@@ -36,3 +46,25 @@ else:
         }
     }
     print('[DB] Using SQLite (local)')
+
+# ── Logging — print everything to console ────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'apps.accounts': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
