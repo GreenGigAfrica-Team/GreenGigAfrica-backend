@@ -40,6 +40,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -128,3 +129,5 @@ CORS_ALLOW_CREDENTIALS = True
 # ── OTP ───────────────────────────────────────────────────────────────────────
 OTP_EXPIRY_MINUTES = 10
 OTP_LENGTH = 6
+
+STATIC_ROOT = BASE_DIR / "staticfiles"

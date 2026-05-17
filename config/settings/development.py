@@ -21,6 +21,10 @@ TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='')
 TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='')
 TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='')
 
+# ── Africa's Talking SMS ──────────────────────────────────────────────────────
+AT_USERNAME = env('AT_USERNAME', default='')
+AT_API_KEY = env('AT_API_KEY', default='')
+
 # ── CORS ──────────────────────────────────────────────────────────────────────
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
