@@ -8,4 +8,5 @@ urlpatterns = [
     path('setup-profile/', views.setup_profile, name='setup-profile'),
     path('me/', views.me, name='me'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
+    path('firebase-login/', views.firebase_login, name='firebase-login'),
 ]

@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -115,6 +116,13 @@ REST_FRAMEWORK = {
     ],
 }
 
+# firebase--------------
+FIREBASE_CREDENTIALS_PATH = os.path.join(
+    BASE_DIR,
+    "config",
+    "serviceAccountKey.json"
+)
+
 # ── JWT ───────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=12),
@@ -129,5 +137,17 @@ CORS_ALLOW_CREDENTIALS = True
 # ── OTP ───────────────────────────────────────────────────────────────────────
 OTP_EXPIRY_MINUTES = 10
 OTP_LENGTH = 6
+
+# ── Cache (rate limiting) ─────────────────────────────────────────────────────
+# LocMemCache works out of the box — no Redis needed for dev.
+# In production, swap to Redis for multi-process support:
+#   pip install django-redis
+#   CACHES = {'default': {'BACKEND': 'django_redis.cache.RedisCache', 'LOCATION': 'redis://...'}}
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'greengig-otp-cache',
+    }
+}
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
