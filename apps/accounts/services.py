@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import OTPCode, User
@@ -6,10 +7,50 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ── Rate limiting constants ───────────────────────────────────────────────────
+OTP_RATE_LIMIT      = 3    # max OTP requests per window
+OTP_RATE_WINDOW     = 600  # window in seconds (10 minutes)
+
+
+def check_otp_rate_limit(phone_number: str) -> tuple[bool, int]:
+    """
+    Returns (allowed, seconds_until_reset).
+    Tracks how many OTP requests a phone number has made in the last 10 minutes.
+    Uses Django's cache (LocMemCache in dev, Redis in prod).
+    """
+    cache_key = f'otp_rate:{phone_number}'
+    count = cache.get(cache_key, 0)
+
+    if count >= OTP_RATE_LIMIT:
+        # get remaining TTL so we can tell the user when to retry
+        ttl = cache.ttl(cache_key) if hasattr(cache, 'ttl') else OTP_RATE_WINDOW
+        return False, ttl or OTP_RATE_WINDOW
+
+    # increment — set with full window TTL on first request, preserve TTL after
+    if count == 0:
+        cache.set(cache_key, 1, timeout=OTP_RATE_WINDOW)
+    else:
+        cache.set(cache_key, count + 1, timeout=OTP_RATE_WINDOW)
+
+    return True, 0
+
 
 def send_otp(phone_number: str) -> OTPCode:
-    """Generate OTP, invalidate old ones, send via SMS. Returns the OTPCode instance."""
+    """
+    Generate OTP, invalidate old ones, send via SMS.
+    Raises ValueError if rate limit is exceeded.
+    Returns the OTPCode instance.
+    """
+    allowed, wait = check_otp_rate_limit(phone_number)
+    if not allowed:
+        minutes = max(1, round(wait / 60))
+        raise ValueError(
+            f'Too many OTP requests. Please wait {minutes} minute(s) before trying again.'
+        )
+
+    # Invalidate any previous unused OTPs for this number
     OTPCode.objects.filter(phone_number=phone_number, is_used=False).update(is_used=True)
+
     code = OTPCode.generate_code()
     otp = OTPCode.objects.create(phone_number=phone_number, code=code)
     _dispatch_sms(phone_number, code)
@@ -18,6 +59,15 @@ def send_otp(phone_number: str) -> OTPCode:
 
 def _dispatch_sms(phone_number: str, code: str):
     print(f'\n[SMS DISPATCH] phone={phone_number} code={code}')
+
+    # ── Dev mode: skip all providers, log code immediately ────────────────────
+    if getattr(settings, 'DEV_MODE', False):
+        print(f'\n{"=" * 50}')
+        print(f'[DEV OTP]  {phone_number}  →  {code}')
+        print(f'{"=" * 50}\n')
+        logger.info('DEV_MODE on. OTP for %s: %s', phone_number, code)
+        return
+
     msg = (
         f'Your GreenGig Africa verification code is: {code}. '
         f'Valid for {settings.OTP_EXPIRY_MINUTES} minutes. Do not share this code.'
@@ -25,28 +75,24 @@ def _dispatch_sms(phone_number: str, code: str):
 
     # ── Termii ────────────────────────────────────────────────────────────────
     termii_key = getattr(settings, 'TERMII_API_KEY', '').strip()
-    print(f'[SMS] TERMII_API_KEY set: {bool(termii_key)} | TWILIO_SID set: {bool(getattr(settings, "TWILIO_ACCOUNT_SID", "").strip())}')
     if termii_key:
-        sent = _send_termii(phone_number, msg, termii_key)
-        if sent:
+        if _send_termii(phone_number, msg, termii_key):
             return
 
     # ── Africa's Talking ──────────────────────────────────────────────────────
-    at_key = getattr(settings, 'AT_API_KEY', '').strip()
+    at_key  = getattr(settings, 'AT_API_KEY', '').strip()
     at_user = getattr(settings, 'AT_USERNAME', '').strip()
     if at_key and at_user:
-        sent = _send_africastalking(phone_number, msg, at_user, at_key)
-        if sent:
+        if _send_africastalking(phone_number, msg, at_user, at_key):
             return
 
     # ── Twilio ────────────────────────────────────────────────────────────────
     twilio_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '').strip()
     if twilio_sid:
-        sent = _send_twilio(phone_number, msg)
-        if sent:
+        if _send_twilio(phone_number, msg):
             return
 
-    # ── Dev fallback ──────────────────────────────────────────────────────────
+    # ── Dev fallback (no provider configured) ─────────────────────────────────
     print(f'\n{"=" * 50}')
     print(f'[DEV OTP]  {phone_number}  →  {code}')
     print(f'{"=" * 50}\n')
@@ -54,19 +100,8 @@ def _dispatch_sms(phone_number: str, code: str):
 
 
 def _send_termii(phone_number: str, msg: str, api_key: str) -> bool:
-    """
-    Send OTP via Termii.
-    Strategy:
-    1. Token API (/api/sms/otp/send) — uses Termii's own system number,
-       no Sender ID approval needed, works immediately after signup.
-       We embed our own code in the message so our DB verification still works.
-    2. Generic SMS (/api/sms/send) — uses custom Sender ID (needs approval).
-    """
     import requests as req
 
-    # ── 1. Termii Token API (no Sender ID needed) ─────────────────────────────
-    # Extract the code from msg to embed in the token message template
-    # msg format: "Your GreenGig Africa verification code is: 123456. Valid..."
     print(f'[Termii] Trying token API for {phone_number} ...')
     try:
         resp = req.post(
@@ -81,45 +116,41 @@ def _send_termii(phone_number: str, msg: str, api_key: str) -> bool:
                 'pin_time_to_live': settings.OTP_EXPIRY_MINUTES,
                 'pin_length': settings.OTP_LENGTH,
                 'pin_placeholder': '< 1234 >',
-                'message_text': f'Your GreenGig Africa code is < 1234 >. Valid for {settings.OTP_EXPIRY_MINUTES} minutes. Do not share.',
+                'message_text': (
+                    f'Your GreenGig Africa code is < 1234 >. '
+                    f'Valid for {settings.OTP_EXPIRY_MINUTES} minutes. Do not share.'
+                ),
                 'pin_type': 'NUMERIC',
             },
             timeout=15,
         )
         data = resp.json()
         logger.info('[Termii token] %s → %s', resp.status_code, data)
-
         if resp.status_code == 200 and data.get('pinId'):
             print(f'[SMS] Sent via Termii token API to {phone_number}')
             return True
-
         logger.warning('[Termii token] Failed: %s', data)
-
     except Exception as exc:
         logger.error('[Termii token] Exception: %s', exc)
 
-    # ── 2. Termii Generic SMS (custom Sender ID, needs approval) ──────────────
-    sender_id = getattr(settings, 'TERMII_SENDER_ID', 'GreenGig')
+    # fallback to generic SMS
+    sender_id  = getattr(settings, 'TERMII_SENDER_ID', 'GreenGig')
     is_nigerian = phone_number.startswith('+234') or phone_number.startswith('234')
-    channels = ['generic', 'dnd'] if is_nigerian else ['generic']
+    channels   = ['generic', 'dnd'] if is_nigerian else ['generic']
 
     for channel in channels:
         try:
             resp = req.post(
                 'https://api.termii.com/api/sms/send',
                 json={
-                    'to': phone_number,
-                    'from': sender_id,
-                    'sms': msg,
-                    'type': 'plain',
-                    'channel': channel,
-                    'api_key': api_key,
+                    'to': phone_number, 'from': sender_id,
+                    'sms': msg, 'type': 'plain',
+                    'channel': channel, 'api_key': api_key,
                 },
                 timeout=15,
             )
             data = resp.json()
             logger.info('[Termii %s] %s → %s', channel, resp.status_code, data)
-
             if resp.status_code == 200 and (
                 data.get('code') == 'ok'
                 or data.get('message_id')
@@ -127,9 +158,7 @@ def _send_termii(phone_number: str, msg: str, api_key: str) -> bool:
             ):
                 print(f'[SMS] Sent via Termii ({channel}) to {phone_number}')
                 return True
-
             logger.warning('[Termii %s] Failed: %s', channel, data)
-
         except Exception as exc:
             logger.error('[Termii %s] Exception: %s', channel, exc)
 
