@@ -122,7 +122,7 @@ def _send_termii(phone_number: str, msg: str, api_key: str) -> bool:
                 ),
                 'pin_type': 'NUMERIC',
             },
-            timeout=15,
+            timeout=3,
         )
         data = resp.json()
         logger.info('[Termii token] %s → %s', resp.status_code, data)
@@ -147,7 +147,7 @@ def _send_termii(phone_number: str, msg: str, api_key: str) -> bool:
                     'sms': msg, 'type': 'plain',
                     'channel': channel, 'api_key': api_key,
                 },
-                timeout=15,
+                timeout=3,
             )
             data = resp.json()
             logger.info('[Termii %s] %s → %s', channel, resp.status_code, data)
